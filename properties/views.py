@@ -5,6 +5,7 @@ from .serializers import PropertySerializer,UserRegistrationSerializer,LoginSeri
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
+from .permissions import IsAdmin,IsOwnerOrAdmin,IsAdminOrLandlord
 
 # Create your views here.
 
@@ -19,17 +20,22 @@ class PropertyListView(APIView):
         return Response(serializer.data)
 
     def post(self,request):
+        permission=IsAdminOrLandlord()
+
+        if not permission.has_permission(request,self):
+            return Response({"detail":"Only admins and landlords can create properties."},status=403)
+        
         serializer=PropertySerializer(data=request.data)
 
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(owner=request.user)
             return Response(serializer.data)
         return Response(serializer.errors,status=400)
 
 # pk-primary key
 class PropertyDetailView(APIView):
     
-    permission_classes=[IsAuthenticated]
+    permission_classes=[IsAuthenticated,IsOwnerOrAdmin]
 
     def get_property(self,pk):
         try:
@@ -42,9 +48,10 @@ class PropertyDetailView(APIView):
 
         if property is None:
             return Response({"error": "Property not found"},status=404)
+        
+        self.check_object_permissions(request,property)
 
         serializer=PropertySerializer(property)
-
         return Response(serializer.data)
 
     def put(self,request,pk):
@@ -52,7 +59,8 @@ class PropertyDetailView(APIView):
 
         if property is None:
             return Response({"error": "Property not found"},status=404)
-
+        
+        self.check_object_permissions(request,property)
         serializer=PropertySerializer(property,data=request.data)
 
         if serializer.is_valid():
@@ -66,6 +74,8 @@ class PropertyDetailView(APIView):
 
         if property is None:
             return Response({"error": "Property not found"},status=404)
+
+        self.check_object_permissions(request,property)
         property.delete()
         return Response({"message": "Property deleted successfully"},status=204)
 
@@ -83,6 +93,7 @@ class RegisterView(APIView):
 class LoginView(APIView):
     def post(self,request):
         serializer=LoginSerializer(data=request.data)
+
         if serializer.is_valid():
             username=serializer.validated_data['username']
             password=serializer.validated_data['password']
@@ -97,3 +108,10 @@ class LoginView(APIView):
                 return Response({"message":"Login successful","refresh":str(refresh),"access":str(refresh.access_token)})
             return Response({"error":"Invalid username or password"},status=401)
         return Response(serializer.errors,status=400)
+
+
+class AdminTestView(APIView):
+    permission_classes=[IsAdmin]
+
+    def get(self,request):
+        return Response({"mesage":"You are an admin. Access Granted!"})

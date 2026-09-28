@@ -6,6 +6,7 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model=Property
         fields='__all__'
+        read_only_fields=['owner']
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
