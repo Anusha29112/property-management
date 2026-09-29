@@ -1,250 +1,234 @@
 # Property Management Platform
 
-A full-stack property management application built for learning and practicing modern backend development.
+A full-stack property management platform built for managing properties, landlords, tenants, rental applications, leases, maintenance requests, property images, and payments.
 
-The backend is being developed using **Django, Django REST Framework, PostgreSQL, JWT Authentication, and custom authorization/permissions**.
-
----
-
-## Project Status
-
-### Completed Features
-
-* Django project setup
-* PostgreSQL database integration
-* Property model
-* Database migrations
-* Django REST Framework
-* Property CRUD APIs
-* User registration
-* User login
-* JWT authentication
-* Authentication using access tokens
-* Role-based authorization
-* Custom permissions using `BasePermission`
-* Admin, Landlord, and Tenant roles
-* Property ownership
-* Object-level permissions
-* Owner/Admin property access control
-* Git and GitHub integration
-
----
-
-## Technologies
+## Tech Stack
 
 ### Backend
 
 * Python
 * Django
 * Django REST Framework
-* Simple JWT
 * PostgreSQL
+* JWT Authentication
+* Git & GitHub
 
-### Development Tools
 
-* VS Code
-* Postman
-* pgAdmin 4
-* Git
-* GitHub
+> The current implementation focuses on the Django REST API backend. The React frontend will be developed separately.
 
 ---
 
-## Application Roles
+## Project Features
 
-The application currently supports three roles:
+### Authentication & Authorization
+
+* User registration
+* User login
+* JWT authentication
+* Role-based access
+* Admin
+* Landlord
+* Tenant
+* Protected API endpoints
+
+### Property Management
+
+Landlords can:
+
+* Create properties
+* View their properties
+* Update properties
+* Delete properties
+* Manage property status
+* Manage property type
+* Add property images
+
+Tenants can:
+
+* View available properties
+* Search properties
+* Filter properties
+* Sort properties
+* Use pagination
+
+### Rental Applications
+
+Tenants can:
+
+* Submit rental applications
+* View their applications
+
+Landlords can:
+
+* View applications for their properties
+* Approve applications
+* Reject applications
+
+The system prevents duplicate applications and prevents changes after an application reaches a final status.
+
+### Lease Management
+
+The platform supports:
+
+* Creating leases from approved rental applications
+* Connecting leases with properties
+* Connecting leases with tenants
+* Connecting leases with landlords
+* Viewing active leases
+* Ending leases
+* Terminating leases
+
+Only approved rental applications can be converted into leases.
+
+### Maintenance Requests
+
+Tenants can:
+
+* Create maintenance requests
+* View their maintenance requests
+* Cancel open requests
+
+Landlords can:
+
+* View maintenance requests for their properties
+* Change request priority
+* Change request status
+
+Supported statuses:
+
+* OPEN
+* IN_PROGRESS
+* COMPLETED
+* CANCELLED
+
+Supported priorities:
+
+* LOW
+* MEDIUM
+* HIGH
+* URGENT
+
+### Property Images
+
+Landlords can add images to their properties.
+
+Each image contains:
+
+* Image URL
+* Caption
+* Property relationship
+* Creation timestamp
+
+### Payments
+
+Tenants can:
+
+* Create payment records for their active leases
+* View their payments
+
+Landlords can:
+
+* View payments associated with their leases
+
+Supported payment methods:
+
+* CASH
+* BANK_TRANSFER
+* CREDIT_CARD
+* DEBIT_CARD
+
+Supported payment statuses:
+
+* PENDING
+* COMPLETED
+* FAILED
+
+---
+
+
+
+## User Roles
 
 ### Admin
 
-Admin has system-level privileges.
+The Django admin can be used to manage:
 
-* Access admin functionality
-* View properties
-* Create properties
-* Manage properties
-* Access properties owned by other users
+* Users
+* Profiles
+* Properties
+* Rental applications
+* Leases
+* Maintenance requests
+* Property images
+* Payments
 
 ### Landlord
 
-Landlords manage their own properties.
+A landlord can:
 
-* Login
-* View properties
-* Create properties
-* View their own properties
-* Update their own properties
-* Delete their own properties
-* Cannot modify another landlord's property
+* Manage their own properties
+* Add property images
+* View rental applications for their properties
+* Approve or reject applications
+* Create leases from approved applications
+* View and manage their leases
+* View maintenance requests
+* Update maintenance request status and priority
+* View payments related to their leases
 
 ### Tenant
 
-Tenants can currently:
+A tenant can:
 
-* Register
-* Login
-* View properties
-* Access authenticated APIs
-
-Tenants cannot currently create, update, or delete properties.
-
+* Browse properties
+* Search and filter properties
+* Submit rental applications
+* View their applications
+* View their leases
+* Submit maintenance requests
+* Cancel open maintenance requests
+* Submit payments
+* View their payments
 
 ---
 
-## Authentication
+## Database Relationships
 
-The application uses **JWT (JSON Web Token)** authentication.
-
-### Login Flow
+Main entities:
 
 ```text
 User
-  ↓
-POST /api/login/
-  ↓
-Username + Password
-  ↓
-Django Authentication
-  ↓
-JWT Access Token
-  ↓
-Send Token with API Requests
+ │
+ ├── Profile
+ │
+ ├── Properties (Landlord)
+ │
+ ├── Rental Applications (Tenant)
+ │
+ ├── Leases (Tenant)
+ │
+ ├── Maintenance Requests (Tenant)
+ │
+ └── Payments (Tenant)
+
+
+Property
+ │
+ ├── Rental Applications
+ ├── Leases
+ ├── Maintenance Requests
+ └── Property Images
+
+
+RentalApplication
+ │
+ └── Lease
+
+
+Lease
+ │
+ └── Payments
 ```
-
-Authenticated requests use:
-
-```text
-Authorization: Bearer <access_token>
-```
-
----
-
-
-### Current Permission Structure
-
-```text
-IsAuthenticated
-        ↓
-User must be logged in
-
-
-IsAdmin
-        ↓
-Only ADMIN users
-
-
-IsAdminOrLandlord
-        ↓
-ADMIN or LANDLORD
-
-
-IsOwnerOrAdmin
-        ↓
-Property owner OR ADMIN
-```
-
----
-
-## Property Ownership
-
-Each property has an owner.
-
-```text
-User
-  │
-  │ 1
-  │
-  └──────────< Properties
-                  │
-                  └── owner
-```
-
-When a landlord creates a property:
-
-```python
-serializer.save(owner=request.user)
-```
-
-The property is automatically connected to the logged-in user.
-
-This prevents users from manually choosing another user as the owner.
-
----
-
-## Object-Level Authorization
-
-The project uses:
-
-```python
-self.check_object_permissions(request, property)
-```
-
-This checks whether the current user is allowed to access a specific property.
-
-
-
----
-
-## Current API Endpoints
-
-### Authentication
-
-#### Register
-
-```text
-POST /api/register/
-```
-
-#### Login
-
-```text
-POST /api/login/
-```
-
----
-
-### Properties
-
-#### Get all properties
-
-```text
-GET /api/properties/
-```
-
-#### Create property
-
-```text
-POST /api/properties/
-```
-
-#### Get specific property
-
-```text
-GET /api/properties/<id>/
-```
-
-#### Update property
-
-```text
-PUT /api/properties/<id>/
-```
-
-#### Delete property
-
-```text
-DELETE /api/properties/<id>/
-```
-
----
-
-### Admin
-
-#### Admin test endpoint
-
-```text
-GET /api/admin-test/
-```
-
-Only users with the Admin role can access this endpoint.
 
 ---
 
@@ -254,132 +238,68 @@ Only users with the Admin role can access this endpoint.
 property-management/
 │
 ├── config/
-│   ├── __init__.py
-│   ├── asgi.py
 │   ├── settings.py
 │   ├── urls.py
+│   ├── asgi.py
 │   └── wsgi.py
 │
 ├── properties/
 │   ├── migrations/
-│   ├── __init__.py
 │   ├── admin.py
-│   ├── apps.py
 │   ├── models.py
 │   ├── permissions.py
 │   ├── serializers.py
-│   ├── tests.py
 │   ├── urls.py
-│   └── views.py
+│   ├── views.py
+│   └── tests.py
 │
 ├── manage.py
-├── .gitignore
-└── README.md
-└── requirement.txt
+├── README.md
+└── .gitignore
 ```
+
+
+## Authentication
+
+The API uses JWT authentication.
+
+After logging in, use the returned access token in the request header:
+
+```text
+Authorization: Bearer <access_token>
+```
+
+Protected endpoints require authentication.
 
 ---
 
-## Database Structure
+## Current Project Status
 
-### User
+### Backend
 
-Django's built-in User model stores:
-
-```text
-id
-username
-password
-email
-first_name
-last_name
-```
-
-### Profile
-
-```text
-id
-user
-role
-phone
-```
-
-Profile has a one-to-one relationship with User.
-
-```text
-User 1 ───────── 1 Profile
-```
-
-### Property
-
-```text
-id
-owner
-title
-description
-address
-city
-province
-postal_code
-rent
-bedrooms
-bathrooms
-property_type
-status
-created_at
-updated_at
-```
-
-Relationship:
-
-```text
-User 1 ───────── * Property
-```
-
-One user can own multiple properties.
-
----
-
-## Database
-
-PostgreSQL is used as the main database.
-
-```text
-Django
-   ↓
-Django ORM
-   ↓
-PostgreSQL
-```
-
-Database:
-
-```text
-property_management
-```
+* [x] Django project setup
+* [x] PostgreSQL integration
+* [x] User registration
+* [x] JWT authentication
+* [x] Role-based authorization
+* [x] Property CRUD
+* [x] Property search
+* [x] Property filtering
+* [x] Property sorting
+* [x] Pagination
+* [x] Rental applications
+* [x] Lease management
+* [x] Maintenance requests
+* [x] Property images
+* [x] Payments
+* [x] Django admin configuration
+* [x] Database migrations
+* [x] API testing
 
 
-## Learning Goals
-
-This project is being developed to gain practical experience with:
-
-* Python
-* Django
-* Django REST Framework
-* REST APIs
-* PostgreSQL
-* Authentication
-* Authorization
-* JWT
-* Object-level permissions
-* Database relationships
-* CRUD operations
-* Git and GitHub
-* React
-* Full-stack application development
-
----
 
 ## Author
 
 Anusha Patel
+
+Property Management Platform — Django REST API + PostgreSQL

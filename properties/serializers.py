@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Property,Profile
+from .models import Property,Profile,RentalApplication,Lease,MaintenanceRequest,PropertyImage,Payment
 
 class PropertySerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,7 +15,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model=User
-        fields=['username','email','password','role','phone']
+        fields=['username','email','password','first_name','last_name','role','phone']
         extra_kwargs={
             'password':{'write_only':True}
         }
@@ -27,7 +27,9 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         user=User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=validated_data['password']
+            password=validated_data['password'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name']
         )
 
         Profile.objects.create(
@@ -43,3 +45,42 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username=serializers.CharField()
     password=serializers.CharField(write_only=True)
+
+
+class RentalApplicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RentalApplication
+        fields = '__all__'
+        read_only_fields = ['tenant', 'status']
+
+
+class LeaseSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Lease
+        fields = '__all__'
+        read_only_fields = ['tenant', 'landlord','property']
+
+
+class MaintenanceRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaintenanceRequest
+        fields = '__all__'
+        read_only_fields = ['tenant', 'status']
+
+
+class PropertyImageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PropertyImage
+        fields = '__all__'
+        read_only_fields = ['property','created_at']
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Payment
+        fields = '__all__'
+        read_only_fields = ['tenant', 'status', 'created_at']
+
