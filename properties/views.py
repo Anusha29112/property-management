@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from .permissions import IsAdmin,IsOwnerOrAdmin,IsAdminOrLandlord
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.decorators import api_view
 
 # Create your views here.
 class PropertyPagination(PageNumberPagination):
@@ -599,6 +600,7 @@ class PropertyImageView(APIView):
             status=400
         )
 
+
 class PaymentView(APIView):
 
     permission_classes = [IsAuthenticated]
@@ -680,4 +682,32 @@ class PaymentView(APIView):
             status=400
         )
 
+# CUSTOM API
+@api_view(['GET'])
+def landlord_dashboard(request):
 
+    properties = Property.objects.filter(owner=request.user)
+
+    pending_applications = RentalApplication.objects.filter(
+        property__owner=request.user,
+        status='PENDING'
+    )
+
+    active_leases = Lease.objects.filter(
+        landlord=request.user,
+        status='ACTIVE'
+    )
+
+    open_maintenance_requests = MaintenanceRequest.objects.filter(
+        property__owner=request.user,
+        status='OPEN'
+    )
+
+    return Response({
+        "total_properties": properties.count(),
+        "available_properties": properties.filter(status='AVAILABLE').count(),
+        "rented_properties": properties.filter(status='RENTED').count(),
+        "pending_applications": pending_applications.count(),
+        "active_leases": active_leases.count(),
+        "open_maintenance_requests": open_maintenance_requests.count()
+    })

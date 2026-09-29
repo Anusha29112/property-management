@@ -12,7 +12,8 @@ from .views import (
     MaintenanceRequestView,
     MaintenanceRequestDetailView,
     PropertyImageView,
-    PaymentView
+    PaymentView,
+    landlord_dashboard
 )
 
 urlpatterns=[
@@ -30,4 +31,5 @@ urlpatterns=[
     path('maintenance-requests/<int:pk>/',MaintenanceRequestDetailView.as_view(),name='maintenance-request-detail'),
     path('properties/<int:property_id>/images/',PropertyImageView.as_view(),name='property-images'),
     path('payments/',PaymentView.as_view(),name='payments'),
+    path('landlord/dashboard/',landlord_dashboard,name='landlord-dashboard')
 ]
