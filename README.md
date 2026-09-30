@@ -328,6 +328,183 @@ All endpoints are prefixed with `/api/`:
 * [x] Fully responsive layout for desktop, tablet, and mobile devices
 * [x] Build and lint verification (0 errors)
 
+
+## Docker Support
+
+The application is fully containerized using **Docker and Docker Compose**. The system runs as three separate services:
+
+```text
+┌──────────────────────────────┐
+│       React + Vite           │
+│      Docker Container        │
+│         Port 3000            │
+└──────────────┬───────────────┘
+               │
+               │ HTTP / JSON
+               ▼
+┌──────────────────────────────┐
+│     Django REST Framework    │
+│      Docker Container        │
+│         Port 8000            │
+└──────────────┬───────────────┘
+               │
+               │ PostgreSQL
+               ▼
+┌──────────────────────────────┐
+│        PostgreSQL 16         │
+│      Docker Container        │
+│         Port 5432            │
+└──────────────────────────────┘
+```
+
+### Docker Components
+
+- **PostgreSQL**: Uses the official `postgres:16` Docker image.
+- **Django Backend**: Uses a custom Docker image built from the project's root `Dockerfile`.
+- **React Frontend**: Uses a custom Docker image built from `frontend/Dockerfile`.
+- **Docker Compose**: Manages and connects all three containers through a shared Docker network.
+- **Persistent Database Volume**: PostgreSQL uses a Docker volume named `postgres_data` for database persistence.
+
+### Docker Project Structure
+
+```text
+property-management/
+│
+├── Dockerfile                 # Django backend Docker image
+├── .dockerignore              # Files excluded from Docker build
+├── docker-compose.yml         # Multi-container configuration
+│
+├── config/
+├── properties/
+├── manage.py
+├── requirements.txt
+│
+└── frontend/
+    ├── Dockerfile             # React frontend Docker image
+    ├── package.json
+    ├── vite.config.js
+    └── src/
+```
+
+### Docker Configuration
+
+The backend Docker image is based on Python 3.12 and installs the required Django and PostgreSQL dependencies.
+
+The frontend Docker image is based on Node.js and runs the Vite development server on port `3000`.
+
+Docker Compose connects the services using their service names:
+
+```text
+React → backend:8000 → db:5432
+```
+
+The Vite proxy is configured to forward `/api` requests to the Django container:
+
+```javascript
+proxy: {
+  '/api': {
+    target: 'http://backend:8000',
+    changeOrigin: true,
+  },
+},
+```
+
+Django connects to PostgreSQL using the Docker Compose service name:
+
+```python
+"HOST": "db",
+"PORT": "5432",
+```
+
+### Running the Application with Docker
+
+From the project root:
+
+```bash
+docker compose build
+```
+
+Start all services:
+
+```bash
+docker compose up -d
+```
+
+Check running containers:
+
+```bash
+docker compose ps
+```
+
+The expected services are:
+
+```text
+property_management_db
+property_management_backend
+property_management_frontend
+```
+
+### Database Migrations
+
+Run Django migrations inside the backend container:
+
+```bash
+docker compose exec backend python manage.py migrate
+```
+
+Create a Django administrator:
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
+
+### Accessing the Application
+
+React frontend:
+
+```text
+http://localhost:3000
+```
+
+Django REST API:
+
+```text
+http://localhost:8000/api/
+```
+
+Django Administration:
+
+```text
+http://localhost:8000/admin/
+```
+
+### Stopping the Application
+
+Stop the containers:
+
+```bash
+docker compose down
+```
+
+Start them again:
+
+```bash
+docker compose up -d
+```
+
+### Dockerization Status
+
+- [x] Django backend Docker image
+- [x] React frontend Docker image
+- [x] PostgreSQL Docker container
+- [x] Docker Compose configuration
+- [x] Backend and database container networking
+- [x] Frontend and backend container networking
+- [x] Persistent PostgreSQL Docker volume
+- [x] Django migrations running inside Docker
+- [x] JWT authentication working through Docker
+- [x] React frontend working through Docker
+- [x] Full application running with Docker Compose
 ---
 
 ## Author

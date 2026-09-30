@@ -1,0 +1,37 @@
+services:
+
+  db:
+    image: postgres:16
+    container_name: property_management_db
+    environment:
+      POSTGRES_DB: property_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Postgres!29
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+    image: property-management-backend
+    container_name: property_management_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: property_management_frontend
+    command: npm run dev -- --host 0.0.0.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
