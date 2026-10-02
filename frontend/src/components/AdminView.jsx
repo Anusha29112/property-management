@@ -1,6 +1,19 @@
-import { Database, KeyRound, ExternalLink, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Database,
+  ExternalLink,
+  FileCheck2,
+  KeyRound,
+  RefreshCw,
+  Users,
+  Wrench,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getToken } from '../services/api';
+import { api, getToken } from '../services/api';
 
 const ENDPOINTS = [
   { method: 'GET / POST', path: '/api/properties/', desc: 'List / filter / create properties' },
@@ -13,19 +26,55 @@ const ENDPOINTS = [
   { method: 'GET / POST / PUT', path: '/api/maintenance-requests/', desc: 'Maintenance dispatch & resolution' },
   { method: 'GET / POST', path: '/api/payments/', desc: 'Rent payments & ledger audit' },
   { method: 'GET', path: '/api/landlord/dashboard/', desc: 'Custom landlord analytics aggregated metrics' },
+  { method: 'GET', path: '/api/admin/dashboard/', desc: 'Admin overview of users, properties, leases & payments' },
   { method: 'GET', path: '/api/admin-test/', desc: 'Admin role verification endpoint' },
 ];
 
 export default function AdminView() {
   const { backendOnline, checkingBackend, refreshBackendStatus, user } = useAuth();
   const token = getToken();
+  const [dashboard, setDashboard] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const loadDashboard = () => {
+    setIsLoading(true);
+    setRefreshKey((current) => current + 1);
+  };
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    api.getAdminDashboard()
+      .then((data) => {
+        if (isCurrent) {
+          setDashboard(data);
+          setErrorMsg('');
+        }
+      })
+      .catch((err) => {
+        if (isCurrent) {
+          setErrorMsg(err.message || 'Failed to load admin dashboard');
+        }
+      })
+      .finally(() => {
+        if (isCurrent) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [refreshKey]);
 
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
         <div className="dashboard-header-title">
-          <h2>Backend API Architecture & System Monitor</h2>
-          <p>Direct connectivity to Django REST Framework backend & PostgreSQL database</p>
+          <h2>Admin Dashboard</h2>
+          <p>Platform-wide overview of users, properties, applications, leases and payments</p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -39,12 +88,71 @@ export default function AdminView() {
             <ExternalLink size={14} />
           </a>
 
-          <button className="btn-primary" onClick={refreshBackendStatus}>
+          <button className="btn-secondary" onClick={refreshBackendStatus}>
             <RefreshCw size={14} className={checkingBackend ? 'spin-icon' : ''} />
             <span>Check API Ping</span>
           </button>
+          <button className="btn-primary" onClick={loadDashboard} disabled={isLoading}>
+            <RefreshCw size={14} className={isLoading ? 'spin-icon' : ''} />
+            <span>Refresh Dashboard</span>
+          </button>
         </div>
       </div>
+
+      {errorMsg && (
+        <div role="alert" style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          padding: '1rem',
+          borderRadius: '10px',
+          color: '#f87171',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+        }}>
+          <span>{errorMsg}</span>
+          <button className="btn-secondary" onClick={loadDashboard}>Retry</button>
+        </div>
+      )}
+
+      <div className="metrics-grid" aria-live="polite">
+        {[
+          { label: 'Total Users', value: dashboard?.users?.total, icon: Users, color: '#818cf8', tint: 'rgba(99, 102, 241, 0.15)' },
+          { label: 'Total Properties', value: dashboard?.properties?.total, icon: Building2, color: '#38bdf8', tint: 'rgba(56, 189, 248, 0.15)' },
+          { label: 'Pending Applications', value: dashboard?.applications?.pending, icon: FileCheck2, color: '#fbbf24', tint: 'rgba(245, 158, 11, 0.15)' },
+          { label: 'Active Leases', value: dashboard?.leases?.active, icon: KeyRound, color: '#34d399', tint: 'rgba(16, 185, 129, 0.15)' },
+          { label: 'Open Maintenance', value: dashboard?.maintenance_requests?.open, icon: Wrench, color: '#fb7185', tint: 'rgba(244, 63, 94, 0.15)' },
+          { label: 'Completed Payments', value: dashboard?.payments?.completed, icon: CreditCard, color: '#c084fc', tint: 'rgba(192, 132, 252, 0.15)' },
+        ].map(({ label, value, icon: Icon, color, tint }) => (
+          <div className="metric-card" key={label}>
+            <div className="metric-icon-box" style={{ background: tint, color }}>
+              <Icon size={24} />
+            </div>
+            <div className="metric-data">
+              <h4>{label}</h4>
+              <div className="metric-value">
+                {isLoading && !dashboard ? '—' : (value ?? 0)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {dashboard && (
+        <div className="content-panel">
+          <div className="panel-header">
+            <h3 className="panel-title">Platform Snapshot</h3>
+          </div>
+          <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <div><strong>{dashboard.users?.admins ?? 0}</strong> admins · <strong>{dashboard.users?.landlords ?? 0}</strong> landlords · <strong>{dashboard.users?.tenants ?? 0}</strong> tenants</div>
+            <div><strong>{dashboard.properties?.available ?? 0}</strong> available · <strong>{dashboard.properties?.rented ?? 0}</strong> rented properties</div>
+            <div><strong>{dashboard.applications?.approved ?? 0}</strong> approved · <strong>{dashboard.applications?.rejected ?? 0}</strong> rejected applications</div>
+            <div><strong>{dashboard.maintenance_requests?.in_progress ?? 0}</strong> maintenance requests in progress</div>
+            <div><strong>{dashboard.payments?.pending ?? 0}</strong> pending payments · <strong>{dashboard.payments?.completed_amount ?? '0'}</strong> completed payment total</div>
+          </div>
+        </div>
+      )}
 
       {/* Backend Status Card */}
       <div style={{

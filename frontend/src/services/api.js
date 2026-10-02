@@ -117,6 +117,10 @@ export const api = {
     return await request('/admin-test/');
   },
 
+  async getAdminDashboard() {
+    return await request('/admin/dashboard/');
+  },
+
   // 2. Properties
   async getProperties(params = {}) {
     const query = new URLSearchParams();

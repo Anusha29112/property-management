@@ -10,6 +10,8 @@ from .permissions import IsAdmin,IsOwnerOrAdmin,IsAdminOrLandlord
 from django.db.models import Q
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view
+from django.contrib.auth.models import User
+from django.db.models import Sum
 
 # Create your views here.
 class PropertyPagination(PageNumberPagination):
@@ -150,6 +152,52 @@ class AdminTestView(APIView):
 
     def get(self,request):
         return Response({"mesage":"You are an admin. Access Granted!"})
+
+
+class AdminDashboardView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        completed_payments = Payment.objects.filter(status='COMPLETED').aggregate(
+            total=Sum('amount')
+        )['total']
+
+        return Response({
+            "users": {
+                "total": User.objects.count(),
+                "admins": User.objects.filter(profile__role='ADMIN').count(),
+                "landlords": User.objects.filter(profile__role='LANDLORD').count(),
+                "tenants": User.objects.filter(profile__role='TENANT').count(),
+            },
+            "properties": {
+                "total": Property.objects.count(),
+                "available": Property.objects.filter(status='AVAILABLE').count(),
+                "rented": Property.objects.filter(status='RENTED').count(),
+                "maintenance": Property.objects.filter(status='MAINTENANCE').count(),
+            },
+            "applications": {
+                "total": RentalApplication.objects.count(),
+                "pending": RentalApplication.objects.filter(status='PENDING').count(),
+                "approved": RentalApplication.objects.filter(status='APPROVED').count(),
+                "rejected": RentalApplication.objects.filter(status='REJECTED').count(),
+            },
+            "leases": {
+                "total": Lease.objects.count(),
+                "active": Lease.objects.filter(status='ACTIVE').count(),
+            },
+            "maintenance_requests": {
+                "total": MaintenanceRequest.objects.count(),
+                "open": MaintenanceRequest.objects.filter(status='OPEN').count(),
+                "in_progress": MaintenanceRequest.objects.filter(status='IN_PROGRESS').count(),
+            },
+            "payments": {
+                "total": Payment.objects.count(),
+                "completed": Payment.objects.filter(status='COMPLETED').count(),
+                "pending": Payment.objects.filter(status='PENDING').count(),
+                "completed_amount": str(completed_payments or 0),
+            },
+        })
+
 
 class RentalApplicationView(APIView):
 
