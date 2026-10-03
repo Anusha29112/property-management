@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const backendTarget = process.env.VITE_BACKEND_TARGET || 'http://127.0.0.1:8000'
+const backendTarget = process.env.VITE_BACKEND_TARGET || 'http://172.31.10.91:8000'
 
 // https://vite.dev/config/
 export default defineConfig({
