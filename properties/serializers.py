@@ -70,11 +70,18 @@ class MaintenanceRequestSerializer(serializers.ModelSerializer):
 
 
 class PropertyImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PropertyImage
         fields = '__all__'
         read_only_fields = ['property','created_at']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return obj.image_url or None
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -83,4 +90,3 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = '__all__'
         read_only_fields = ['tenant', 'status', 'created_at']
-

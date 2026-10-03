@@ -15,9 +15,14 @@ export default function CreatePropertyModal({ propertyToEdit, onClose, onSuccess
     bathrooms: '1.0',
     property_type: 'APARTMENT',
     status: 'AVAILABLE',
-    image_url: '',
   });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
 
   useEffect(() => {
     if (propertyToEdit) {
@@ -33,13 +38,23 @@ export default function CreatePropertyModal({ propertyToEdit, onClose, onSuccess
         bathrooms: String(propertyToEdit.bathrooms || '1.0'),
         property_type: propertyToEdit.property_type || 'APARTMENT',
         status: propertyToEdit.status || 'AVAILABLE',
-        image_url: '',
       });
     }
   }, [propertyToEdit]);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    if (file && !file.type.startsWith('image/')) {
+      e.target.value = '';
+      onShowToast('Please select a valid image file.', 'error');
+      return;
+    }
+    setSelectedImage(file);
+    setImagePreview(file ? URL.createObjectURL(file) : '');
   };
 
   const handleSubmit = async (e) => {
@@ -66,14 +81,17 @@ export default function CreatePropertyModal({ propertyToEdit, onClose, onSuccess
         onShowToast('Property updated successfully!', 'success');
       } else {
         const created = await api.createProperty(payload);
-        if (formData.image_url && formData.image_url.trim() && created?.id) {
+        if (selectedImage && created?.id) {
           try {
-            await api.addPropertyImage(created.id, {
-              image_url: formData.image_url.trim(),
-              caption: formData.title,
-            });
+            const imageData = new FormData();
+            imageData.append('image', selectedImage);
+            imageData.append('caption', formData.title.trim());
+            await api.addPropertyImage(created.id, imageData);
           } catch (imgErr) {
-            console.warn('Image could not be linked:', imgErr);
+            onShowToast(`Property created, but image upload failed: ${imgErr.message}`, 'error');
+            onSuccess?.();
+            onClose();
+            return;
           }
         }
         onShowToast('Property listed successfully on Django backend!', 'success');
@@ -253,15 +271,20 @@ export default function CreatePropertyModal({ propertyToEdit, onClose, onSuccess
 
             {!propertyToEdit && (
               <div className="form-group">
-                <label>Initial Image URL (Optional)</label>
+                <label>Property Image (Optional)</label>
                 <input
-                  type="url"
-                  name="image_url"
+                  type="file"
+                  accept="image/*"
                   className="form-input"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image_url}
-                  onChange={handleChange}
+                  onChange={handleImageChange}
                 />
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="Selected property preview"
+                    style={{ display: 'block', maxWidth: '100%', maxHeight: '180px', marginTop: '0.75rem', borderRadius: '8px', objectFit: 'cover' }}
+                  />
+                )}
               </div>
             )}
 

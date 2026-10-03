@@ -236,6 +236,7 @@ All endpoints are prefixed with `/api/`:
 
 * The Django REST API will be available at: **`http://127.0.0.1:8000/api/`**
 * The Django Admin interface will be available at: **`http://127.0.0.1:8000/admin/`**
+* Uploaded property images are stored under `media/property_images/` and served from `/media/` during local development.
 
 ---
 
@@ -398,7 +399,7 @@ Docker Compose connects the services using their service names:
 React → backend:8000 → db:5432
 ```
 
-The Vite proxy is configured to forward `/api` requests to the Django container:
+The Vite proxy forwards API and uploaded-media requests to Django. Local development defaults to `http://127.0.0.1:8000`; Docker Compose sets `VITE_BACKEND_TARGET` to `http://backend:8000`:
 
 ```javascript
 proxy: {
@@ -406,8 +407,14 @@ proxy: {
     target: 'http://backend:8000',
     changeOrigin: true,
   },
+  '/media': {
+    target: 'http://backend:8000',
+    changeOrigin: true,
+  },
 },
 ```
+
+Uploaded files are persisted in the Docker named volume `media_data`, separately from the database volume.
 
 Django connects to PostgreSQL using the Docker Compose service name:
 
@@ -451,6 +458,8 @@ Run Django migrations inside the backend container:
 ```bash
 docker compose exec backend python manage.py migrate
 ```
+
+After migrating and starting the services, sign in as a landlord, create or open a property, choose an image file in the property form, and upload it. The frontend preview appears before upload; the saved image is served through `/media/`. Existing properties with URL-based images remain available.
 
 Create a Django administrator:
 

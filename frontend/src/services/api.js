@@ -54,9 +54,10 @@ export function parseApiError(errData) {
 // Centralized request wrapper attaching JWT token
 async function request(endpoint, options = {}) {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...options.headers,
   };
@@ -185,7 +186,7 @@ export const api = {
   async addPropertyImage(propertyId, data) {
     return await request(`/properties/${propertyId}/images/`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   },
 

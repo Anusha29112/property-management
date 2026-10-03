@@ -603,7 +603,8 @@ class PropertyImageView(APIView):
 
         serializer = PropertyImageSerializer(
             images,
-            many=True
+            many=True,
+            context={'request': request}
         )
 
         return Response(serializer.data)
@@ -629,7 +630,8 @@ class PropertyImageView(APIView):
             )
 
         serializer = PropertyImageSerializer(
-            data=request.data
+            data=request.data,
+            context={'request': request}
         )
 
         if serializer.is_valid():

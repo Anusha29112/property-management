@@ -206,7 +206,13 @@ class PropertyImage(models.Model):
         related_name='images'
     )
 
-    image_url = models.URLField()
+    image = models.ImageField(
+        upload_to='property_images/',
+        blank=True,
+        null=True
+    )
+
+    image_url = models.URLField(blank=True)
 
     caption = models.CharField(
         max_length=200,

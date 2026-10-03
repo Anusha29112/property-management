@@ -22,12 +22,16 @@ services:
       - "8000:8000"
     depends_on:
       - db
+    volumes:
+      - media_data:/app/media
 
   frontend:
     build:
       context: ./frontend
     container_name: property_management_frontend
     command: npm run dev -- --host 0.0.0.0
+    environment:
+      VITE_BACKEND_TARGET: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:
@@ -35,3 +39,4 @@ services:
 
 volumes:
   postgres_data:
+  media_data:

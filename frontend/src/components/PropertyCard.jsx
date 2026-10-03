@@ -4,7 +4,7 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1545324418-cc1a3fa10c0
 
 export default function PropertyCard({ property, onSelect }) {
   const imageUrl = (property.images && property.images.length > 0)
-    ? (typeof property.images[0] === 'string' ? property.images[0] : property.images[0].image_url)
+    ? (typeof property.images[0] === 'string' ? property.images[0] : (property.images[0].image_url || property.images[0].image))
     : FALLBACK_IMAGE;
 
   const formattedRent = Number(property.rent || 0).toLocaleString('en-US', {

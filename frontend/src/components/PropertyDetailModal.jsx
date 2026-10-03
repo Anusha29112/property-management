@@ -22,9 +22,14 @@ export default function PropertyDetailModal({
 
   // Add Image state for landlord
   const [showAddImage, setShowAddImage] = useState(false);
-  const [newImageUrl, setNewImageUrl] = useState('');
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState('');
   const [newImageCaption, setNewImageCaption] = useState('');
   const [isAddingImage, setIsAddingImage] = useState(false);
+
+  useEffect(() => () => {
+    if (newImagePreview) URL.revokeObjectURL(newImagePreview);
+  }, [newImagePreview]);
 
   // Fetch real images from backend
   const loadImages = useCallback(async () => {
@@ -32,9 +37,9 @@ export default function PropertyDetailModal({
     try {
       const imgData = await api.getPropertyImages(property.id);
       if (Array.isArray(imgData) && imgData.length > 0) {
-        setImages(imgData.map(img => img.image_url));
+        setImages(imgData.map(img => typeof img === 'string' ? img : (img.image_url || img.image)).filter(Boolean));
       } else if (property.images && property.images.length > 0) {
-        setImages(property.images.map(img => typeof img === 'string' ? img : img.image_url));
+        setImages(property.images.map(img => typeof img === 'string' ? img : (img.image_url || img.image)).filter(Boolean));
       } else {
         setImages([FALLBACK_IMAGE]);
       }
@@ -87,16 +92,20 @@ export default function PropertyDetailModal({
 
   const handleAddImage = async (e) => {
     e.preventDefault();
-    if (!newImageUrl.trim()) return;
+    if (!newImageFile) {
+      onShowToast('Please select an image to upload.', 'error');
+      return;
+    }
 
     setIsAddingImage(true);
     try {
-      await api.addPropertyImage(property.id, {
-        image_url: newImageUrl.trim(),
-        caption: newImageCaption.trim() || property.title,
-      });
+      const imageData = new FormData();
+      imageData.append('image', newImageFile);
+      imageData.append('caption', newImageCaption.trim() || property.title);
+      await api.addPropertyImage(property.id, imageData);
       onShowToast('Property image added successfully!', 'success');
-      setNewImageUrl('');
+      setNewImageFile(null);
+      setNewImagePreview('');
       setNewImageCaption('');
       setShowAddImage(false);
       loadImages();
@@ -158,14 +167,21 @@ export default function PropertyDetailModal({
               <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.5rem', color: '#fff' }}>Attach Image to Property</div>
               <div className="form-row" style={{ marginBottom: '0.75rem' }}>
                 <div className="form-group" style={{ flex: 2 }}>
-                  <label>Image Direct URL *</label>
+                  <label>Image File *</label>
                   <input
-                    type="url"
+                    type="file"
+                    accept="image/*"
                     className="form-input"
-                    placeholder="https://..."
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      if (file && !file.type.startsWith('image/')) {
+                        e.target.value = '';
+                        onShowToast('Please select a valid image file.', 'error');
+                        return;
+                      }
+                      setNewImageFile(file);
+                      setNewImagePreview(file ? URL.createObjectURL(file) : '');
+                    }}
                   />
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
@@ -179,12 +195,19 @@ export default function PropertyDetailModal({
                   />
                 </div>
               </div>
+              {newImagePreview && (
+                <img
+                  src={newImagePreview}
+                  alt="Selected property preview"
+                  style={{ display: 'block', maxWidth: '100%', maxHeight: '180px', marginBottom: '0.75rem', borderRadius: '8px', objectFit: 'cover' }}
+                />
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                 <button type="button" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.3rem 0.7rem' }} onClick={() => setShowAddImage(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.3rem 0.7rem' }} disabled={isAddingImage}>
-                  {isAddingImage ? 'Saving...' : 'Upload Image URL'}
+                  {isAddingImage ? 'Uploading...' : 'Upload Image'}
                 </button>
               </div>
             </form>
